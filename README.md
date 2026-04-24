@@ -45,7 +45,7 @@ An on-demand, multi-tenant terminal workspace that provisions isolated Docker co
 
 ### 1. Clone the repository
 ```bash
-git clone [https://github.com/YOUR_USERNAME/virtual-linux-lab.git](https://github.com/YOUR_USERNAME/virtual-linux-lab.git)
+git clone [https://github.com/zeeshan933/on-demand-container-lab.git](https://github.com/zeeshan933/on-demand-container-lab.git)
 cd virtual-linux-lab
 ```
 
