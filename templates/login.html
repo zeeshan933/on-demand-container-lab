@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Virtual Linux Lab</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('static', filename='icon.png') }}">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            /* Dark background matching your image */
+            background: linear-gradient(135deg, #111111, #222222, #0a0a0a); 
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #f4f4f9;
+        }
+
+        /* --- Orange Animated Bubble Background --- */
+        .bubbles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        .bubbles li {
+            position: absolute;
+            display: block;
+            list-style: none;
+            width: 20px;
+            height: 20px;
+            /* Glowing orange bubbles */
+            background: rgba(255, 102, 0, 0.15);
+            box-shadow: 0 0 10px rgba(255, 102, 0, 0.3);
+            animation: animate 25s linear infinite;
+            bottom: -150px;
+            border-radius: 50%;
+        }
+        .bubbles li:nth-child(1) { left: 25%; width: 80px; height: 80px; animation-delay: 0s; }
+        .bubbles li:nth-child(2) { left: 10%; width: 20px; height: 20px; animation-delay: 2s; animation-duration: 12s; }
+        .bubbles li:nth-child(3) { left: 70%; width: 20px; height: 20px; animation-delay: 4s; }
+        .bubbles li:nth-child(4) { left: 40%; width: 60px; height: 60px; animation-delay: 0s; animation-duration: 18s; }
+        .bubbles li:nth-child(5) { left: 65%; width: 20px; height: 20px; animation-delay: 0s; }
+        .bubbles li:nth-child(6) { left: 75%; width: 110px; height: 110px; animation-delay: 3s; }
+        .bubbles li:nth-child(7) { left: 35%; width: 150px; height: 150px; animation-delay: 7s; }
+
+        @keyframes animate {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; border-radius: 0; }
+            100% { transform: translateY(-1000px) rotate(720deg); opacity: 0; border-radius: 50%; }
+        }
+
+        /* --- Dark UI Card --- */
+        .login-card {
+            background: rgba(30, 30, 30, 0.85); /* Dark translucent background */
+            border: 1px solid rgba(255, 102, 0, 0.3); /* Subtle orange border */
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            z-index: 1; 
+            width: 100%;
+            max-width: 400px;
+            padding: 40px 30px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .icon-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Customizing inputs for dark mode */
+        .form-control {
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+        }
+        .form-control:focus {
+            background-color: #333;
+            border-color: #ff6600;
+            box-shadow: 0 0 0 0.25rem rgba(255, 102, 0, 0.25);
+            color: #fff;
+        }
+        
+        /* Custom Orange Button */
+        .btn-orange {
+            background-color: #ff6600;
+            color: #fff;
+            border: none;
+        }
+        .btn-orange:hover {
+            background-color: #e65c00;
+            color: #fff;
+        }
+        
+        .text-orange { color: #ff6600 !important; }
+    </style>
+</head>
+<body>
+
+    <ul class="bubbles">
+        <li></li><li></li><li></li><li></li><li></li><li></li><li></li>
+    </ul>
+
+    <div class="login-card">
+        <div class="icon-container">
+            <img src="{{ url_for('static', filename='icon.png') }}" alt="Lab Icon" width="80" height="80" class="img-fluid mb-3">
+            <h2 class="fw-bold mb-0 text-white">Login</h2>
+        </div>
+        
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-danger py-2 text-center" role="alert">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="/login">
+            <div class="mb-3">
+                <label for="username" class="form-label text-light fw-semibold">Username</label>
+                <input type="text" class="form-control form-control-lg" id="username" name="username" required>
+            </div>
+            <div class="mb-4">
+                <label for="password" class="form-label text-light fw-semibold">Password</label>
+                <input type="password" class="form-control form-control-lg" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-orange w-100 btn-lg mb-3 fw-bold">Login</button>
+        </form>
+        
+        <div class="text-center">
+            <a href="http://localhost:5006/register" class="text-decoration-none text-orange">Don't have an account? Register here</a>
+        </div>
+    </div>
+
+</body>
+</html>

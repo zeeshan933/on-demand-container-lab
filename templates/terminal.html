@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workspace - Virtual Linux Lab</title>
+    
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.css" />
+    <link rel="icon" href="{{ url_for('static', filename='icon.png') }}">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.7.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+    <style>
+        body {
+            background-color: #0a0a0a; /* Deep dark background */
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* --- CUSTOM SCROLLBAR STYLING --- */
+        /* Firefox support */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #ff6600 #0a0a0a;
+        }
+
+        /* WebKit/Chrome/Edge/Safari support */
+        ::-webkit-scrollbar {
+            width: 14px;
+            height: 14px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a; 
+            border-left: 1px solid #1a1a1a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background-color: #ff6600; /* Neon orange */
+            border-radius: 10px;
+            /* Creates a pill-shape by adding an invisible border the same color as the track */
+            border: 3px solid #0a0a0a; 
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #e65c00; /* Slightly darker on hover */
+        }
+
+        /* Specifically target the Xterm.js internal scrolling area */
+        .xterm-viewport::-webkit-scrollbar {
+            width: 14px;
+        }
+        .xterm-viewport::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        .xterm-viewport::-webkit-scrollbar-thumb {
+            background-color: #ff6600;
+            border-radius: 10px;
+            border: 3px solid #0a0a0a;
+        }
+        .xterm-viewport::-webkit-scrollbar-thumb:hover {
+            background-color: #e65c00;
+        }
+        /* -------------------------------- */
+
+        /* Custom Header Bar Styling */
+        .header-bar {
+            background-color: #1a1a1a;
+            border-bottom: 2px solid #ff6600; /* Neon orange accent */
+            padding: 10px 20px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        /* Custom Orange Button */
+        .btn-orange {
+            background-color: #ff6600;
+            color: #fff;
+            border: none;
+        }
+        .btn-orange:hover {
+            background-color: #e65c00;
+            color: #fff;
+        }
+
+        /* Customizing File Input */
+        .form-control-dark {
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            color: #ccc;
+        }
+        .form-control-dark:focus {
+            background-color: #333;
+            border-color: #ff6600;
+            box-shadow: none;
+            color: #fff;
+        }
+        
+        #terminal {
+            flex: 1;
+            width: 100%;
+            position: relative;
+            padding-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="header-bar d-flex justify-content-between align-items-center">
+        
+        <div class="d-flex align-items-center">
+            <img src="{{ url_for('static', filename='icon.png') }}" alt="Lab Icon" width="30" height="30" class="me-2">
+            <span class="text-white fw-bold fs-5">Virtual Linux Lab</span>
+        </div>
+        
+        <div class="d-flex align-items-center">
+            <input type="file" id="f" class="form-control form-control-sm form-control-dark me-2" style="max-width: 250px;">
+            <button onclick="up()" class="btn btn-sm btn-orange fw-bold me-3 shadow-sm">Upload to /root/</button>
+            <span id="st" class="fw-bold me-4" style="min-width: 120px;"></span>
+            
+            <a href="/logout" class="btn btn-sm btn-outline-danger fw-bold">Logout</a>
+        </div>
+    </div>
+    
+    <div id="terminal"></div>
+
+    <script>
+        // 1. Initialize Terminal with Custom Orange/Dark Theme
+        const term = new Terminal({ 
+            cursorBlink: true, 
+            fontFamily: 'Consolas, "Courier New", monospace',
+            fontSize: 15,
+            theme: { 
+                background: '#0a0a0a',     // Deep charcoal
+                foreground: '#f4f4f9',     // Off-white text
+                cursor: '#ff6600',         // Neon orange cursor
+                cursorAccent: '#000000',
+                selection: 'rgba(255, 102, 0, 0.3)' // Orange highlight when selecting text
+            } 
+        });
+        
+        // 2. Initialize and load the Fit Addon
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+
+        // 3. Connect WebSockets
+        const socket = io();
+        term.open(document.getElementById('terminal'));
+        
+        // 4. Fit terminal and handle resizing
+        fitAddon.fit();
+        window.addEventListener('resize', () => {
+            fitAddon.fit();
+        });
+
+        term.focus(); // Forces the cursor to appear immediately
+
+        // 5. Handle I/O
+        socket.on("output", data => term.write(data));
+        term.onData(data => socket.emit("input", data));
+
+        // 6. Handle File Uploads
+        async function up() {
+            const fileInput = document.getElementById('f');
+            if (fileInput.files.length === 0) return;
+
+            const fd = new FormData();
+            fd.append('file', fileInput.files[0]);
+            // Pass the SID to the server so it finds the correct container!
+            fd.append('sid', socket.id); 
+            
+            const statusText = document.getElementById('st');
+            statusText.innerText = "Uploading...";
+            statusText.style.color = "#ffaa00"; // Warning/Yellow text while loading
+
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: fd });
+                const json = await res.json();
+                
+                if (res.ok) {
+                    statusText.innerText = "Success!";
+                    statusText.style.color = "#00ff00"; // Bright green on success
+                    fileInput.value = ""; // Clear the file input after success
+                } else {
+                    throw new Error(json.msg || "Upload Failed");
+                }
+            } catch (err) {
+                statusText.innerText = "Upload Failed.";
+                statusText.style.color = "#ff3333"; // Red on failure
+                console.error(err);
+            }
+            
+            // Clear the status message after 4 seconds
+            setTimeout(() => {
+                if (statusText.innerText === "Success!") {
+                    statusText.innerText = "";
+                }
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
